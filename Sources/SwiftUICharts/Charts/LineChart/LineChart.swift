@@ -16,3 +16,14 @@ public struct LineChart: View, ChartBase {
     
     public init() {}
 }
+
+struct LineChart_Previews: PreviewProvider {
+  static var previews: some View {
+    Group {
+      LineChart().data([8, 23, 32, 7, 23, 43]).chartStyle(blackLineStyle)
+    }
+  }
+}
+
+/// Predefined style, black over white, for preview
+private let blackLineStyle = ChartStyle(backgroundColor: ColorGradient(.white), foregroundColor: ColorGradient(.black))

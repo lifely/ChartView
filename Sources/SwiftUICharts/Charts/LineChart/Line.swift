@@ -10,14 +10,22 @@ public struct Line: View {
 
     @State private var showIndicator: Bool = false
     @State private var touchLocation: CGPoint = .zero
-    @State private var showFull: Bool = false
+    @State private var showFull: Bool = true
     @State private var showBackground: Bool = true
     var curvedLines: Bool = true
+
+  var padding: CGFloat = 0.0
+
+  public init(chartData: ChartData, style: ChartStyle) {
+    self.style = style
+    self.chartData = chartData
+  }
 
 	/// Step for plotting through data
 	/// - Returns: X and Y delta between each data point based on data and view's frame
     var step: CGPoint {
-        return CGPoint.getStep(frame: frame, data: chartData.points)
+      let step =  CGPoint.getStep(frame: frame, data: chartData.points, padding: 5.0, scale: CGPoint(x: 0, y: 15000))
+      return style.stepOverride ?? step
     }
 
 	/// Path of line graph
@@ -26,9 +34,7 @@ public struct Line: View {
         let points = chartData.points
 
         if curvedLines {
-            return Path.quadCurvedPathWithPoints(points: points,
-                                                 step: step,
-                                                 globalOffset: nil)
+            return Path.quadCurvedPathWithPoints(points: points, step: step, globalOffset: 0)
         }
 
         return Path.linePathWithPoints(points: points, step: step)
@@ -40,9 +46,7 @@ public struct Line: View {
         let points = chartData.points
 
         if curvedLines {
-            return Path.quadClosedCurvedPathWithPoints(points: points,
-                                            step: step,
-                                            globalOffset: nil)
+            return Path.quadClosedCurvedPathWithPoints(points: points, step: step, globalOffset: 0)
         }
 
         return Path.closedLinePathWithPoints(points: points, step: step)
@@ -71,6 +75,11 @@ public struct Line: View {
                         .position(self.getClosestPointOnPath(touchLocation: self.touchLocation))
                         .rotationEffect(.degrees(180), anchor: .center)
                         .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+
+                  IndicatorPoint()
+                    .position(self.getClosestPointOnPath(touchLocation: CGPoint(x: 50, y: 50) ))
+                    .rotationEffect(.degrees(180), anchor: .center)
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                 }
             }
             .onAppear {
@@ -85,19 +94,19 @@ public struct Line: View {
 				}
 			}
 			
-            .gesture(DragGesture()
-                .onChanged({ value in
-                    self.touchLocation = value.location
-                    self.showIndicator = true
-                    self.getClosestDataPoint(point: self.getClosestPointOnPath(touchLocation: value.location))
-                    self.chartValue.interactionInProgress = true
-                })
-                .onEnded({ value in
-                    self.touchLocation = .zero
-                    self.showIndicator = false
-                    self.chartValue.interactionInProgress = false
-                })
-            )
+//            .gesture(DragGesture()
+//                .onChanged({ value in
+//                    self.touchLocation = value.location
+//                    self.showIndicator = true
+//                    self.getClosestDataPoint(point: self.getClosestPointOnPath(touchLocation: value.location))
+//                    self.chartValue.interactionInProgress = true
+//                })
+//                .onEnded({ value in
+//                    self.touchLocation = .zero
+//                    self.showIndicator = false
+//                    self.chartValue.interactionInProgress = false
+//                })
+//            )
         }
     }
 }
@@ -147,23 +156,23 @@ extension Line {
 	/// TODO: Explain how `showFull` works
 	/// TODO: explain rotations
 	/// - Returns: SwiftUI `View`
-    private func getLinePathView() -> some View {
-        self.path
+    public func getLinePathView() -> some View {
+      let strokeStyle = LinearGradient(gradient: style.foregroundGradient ?? ColorGradient.orangeBright.gradient,
+                                       startPoint: .leading, endPoint: .trailing)
+
+        return self.path
             .trim(from: 0, to: self.showFull ? 1:0)
-            .stroke(LinearGradient(gradient: style.foregroundColor.first?.gradient ?? ColorGradient.orangeBright.gradient,
-                                   startPoint: .leading,
-                                   endPoint: .trailing),
-                    style: StrokeStyle(lineWidth: 3, lineJoin: .round))
+            .stroke(style.firstForegroundColor?.startColor ?? .black, style: style.strokeStyle)
             .rotationEffect(.degrees(180), anchor: .center)
             .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
-            .animation(Animation.easeOut(duration: 1.2))
+//            .animation(Animation.easeOut(duration: 1.2))
             .onAppear {
                 self.showFull = true
             }
             .onDisappear {
                 self.showFull = false
             }
-            .drawingGroup()
+//            .drawingGroup() // show / hide stroke
     }
 }
 
@@ -171,7 +180,7 @@ struct Line_Previews: PreviewProvider {
     static var previews: some View {
         Group {
             Line(chartData:  ChartData([8, 23, 32, 7, 23, 43]), style: blackLineStyle)
-            Line(chartData:  ChartData([8, 23, 32, 7, 23, 43]), style: redLineStyle)
+          Line(chartData:  ChartData([8, 23, 32, 7, 23, 43]), style: redLineStyle)
         }
     }
 }
